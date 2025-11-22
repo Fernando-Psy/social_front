@@ -1,5 +1,8 @@
-import { useState, useEffect } from 'react';
+import { createContext, useState, useEffect } from 'react';
 import { authAPI } from '../services/api';
+
+// Criar o contexto que estava faltando
+export const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(() => {

@@ -39,13 +39,13 @@ const PostForm = ({ onPostCreated }) => {
         setError('');
 
         try {
-            // Use FormData so file uploads are sent correctly
-            const formData = new FormData();
-            formData.append('content', content);
-            if (image) formData.append('image', image);
+            // Criar objeto com content e image
+            const postData = {
+                content: content.trim(),
+                image: image
+            };
 
-            // postsAPI.create should handle FormData (and headers) on the API side.
-            await postsAPI.create(formData);
+            await postsAPI.create(postData);
 
             setContent('');
             clearImage();

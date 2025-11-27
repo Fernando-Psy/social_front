@@ -9,7 +9,7 @@ const api = axios.create({
   },
 });
 
-// Interceptor para adicionar token em todas as requisições
+// Interceptor para adicionar token
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('access_token');
@@ -58,6 +58,7 @@ api.interceptors.response.use(
 export const authAPI = {
   register: (data) => api.post('/auth/register/', data),
   login: (data) => api.post('/auth/login/', data),
+  // CORRIGIDO: era /auth/profile/, agora é /auth/me/
   updateProfile: (data) => {
     const formData = new FormData();
     Object.keys(data).forEach(key => {
@@ -65,7 +66,7 @@ export const authAPI = {
         formData.append(key, data[key]);
       }
     });
-    return api.put('/auth/profile/', formData, {
+    return api.put('/auth/me/', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
   },
@@ -88,15 +89,15 @@ export const postsAPI = {
   update: (id, data) => api.put(`/posts/${id}/`, data),
   delete: (id) => api.delete(`/posts/${id}/`),
   like: (id) => api.post(`/posts/${id}/like/`),
-  unlike: (id) => api.post(`/posts/${id}/unlike/`),
+  // CORRIGIDO: era POST, agora é DELETE
+  unlike: (id) => api.delete(`/posts/${id}/unlike/`),
   comment: (id, content) => api.post(`/posts/${id}/comment/`, { content }),
   getComments: (id) => api.get(`/posts/${id}/comments/`),
 };
 
-// Follows
 export const followsAPI = {
-  follow: (userId) => api.post(`/follows/${userId}/follow/`),
-  unfollow: (userId) => api.delete(`/follows/${userId}/unfollow/`),
+  follow: (userId) => api.post(`/follows/users/${userId}/follow/`),
+  unfollow: (userId) => api.delete(`/follows/users/${userId}/unfollow/`),
   getFollowing: () => api.get('/follows/following/'),
   getFollowers: () => api.get('/follows/followers/'),
 };

@@ -12,7 +12,7 @@ const api = axios.create({
   },
 });
 
-// Interceptor para adicionar token em todas as requisições
+// Interceptor para adicionar token
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('access_token');
@@ -99,6 +99,7 @@ api.interceptors.response.use(
 
 // Auth
 export const authAPI = {
+<<<<<<< HEAD
   register: (data) => {
     console.log('📝 Registrando usuário:', { ...data, password: '***', password2: '***' });
     return api.post('/auth/register/', data);
@@ -109,6 +110,11 @@ export const authAPI = {
     return api.post('/auth/login/', data);
   },
 
+=======
+  register: (data) => api.post('/auth/register/', data),
+  login: (data) => api.post('/auth/login/', data),
+  // CORRIGIDO: era /auth/profile/, agora é /auth/me/
+>>>>>>> 666d980cbe2e91172e53c38095fa627f9cfe7e7b
   updateProfile: (data) => {
     const formData = new FormData();
     Object.keys(data).forEach(key => {
@@ -116,8 +122,12 @@ export const authAPI = {
         formData.append(key, data[key]);
       }
     });
+<<<<<<< HEAD
     console.log('👤 Atualizando perfil');
     return api.put('/auth/profile/', formData, {
+=======
+    return api.put('/auth/me/', formData, {
+>>>>>>> 666d980cbe2e91172e53c38095fa627f9cfe7e7b
       headers: { 'Content-Type': 'multipart/form-data' },
     });
   },
@@ -140,15 +150,15 @@ export const postsAPI = {
   update: (id, data) => api.put(`/posts/${id}/`, data),
   delete: (id) => api.delete(`/posts/${id}/`),
   like: (id) => api.post(`/posts/${id}/like/`),
-  unlike: (id) => api.post(`/posts/${id}/unlike/`),
+  // CORRIGIDO: era POST, agora é DELETE
+  unlike: (id) => api.delete(`/posts/${id}/unlike/`),
   comment: (id, content) => api.post(`/posts/${id}/comment/`, { content }),
   getComments: (id) => api.get(`/posts/${id}/comments/`),
 };
 
-// Follows
 export const followsAPI = {
-  follow: (userId) => api.post(`/follows/${userId}/follow/`),
-  unfollow: (userId) => api.delete(`/follows/${userId}/unfollow/`),
+  follow: (userId) => api.post(`/follows/users/${userId}/follow/`),
+  unfollow: (userId) => api.delete(`/follows/users/${userId}/unfollow/`),
   getFollowing: () => api.get('/follows/following/'),
   getFollowers: () => api.get('/follows/followers/'),
 };

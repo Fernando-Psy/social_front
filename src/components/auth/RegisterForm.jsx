@@ -3,14 +3,14 @@ import { useNavigate, Link } from 'react-router-dom';
 import { UserPlus } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 
-const RegisterForm = () => {
+const RegisterForm = async () => {
   const [formData, setFormData] = useState({
-    username: '',
-    email: '',
-    password: '',
-    password2: '',
-    first_name: '',
-    last_name: '',
+    username: formData.username,
+    email: formData.email,
+    password: formData.password,
+    password2: formData.password2,
+    first_name: formData.first_name,
+    last_name: formData.last_name,
   });
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
@@ -39,12 +39,9 @@ const RegisterForm = () => {
     const result = await register(formData);
 
     if (result.success) {
-      // Se o registro retornar tokens, vai fazer login automático
       navigate('/');
     } else {
-      // Trata diferentes tipos de erro
       if (typeof result.error === 'object') {
-        // Erros de campo específicos (username, email, etc)
         setFieldErrors(result.error);
 
         // Monta mensagem geral

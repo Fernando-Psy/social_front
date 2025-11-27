@@ -3,14 +3,14 @@ import { useNavigate, Link } from 'react-router-dom';
 import { UserPlus } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 
-const RegisterForm = async () => {
+const RegisterForm = () => {
   const [formData, setFormData] = useState({
-    username: formData.username,
-    email: formData.email,
-    password: formData.password,
-    password2: formData.password2,
-    first_name: formData.first_name,
-    last_name: formData.last_name,
+    username: '',
+    email: '',
+    password: '',
+    password2: '',
+    first_name: '',
+    last_name: '',
   });
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
@@ -61,7 +61,6 @@ const RegisterForm = async () => {
 
         setError(errorMessages);
       } else {
-        // Erro genérico
         setError(result.error);
       }
     }

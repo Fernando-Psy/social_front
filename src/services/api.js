@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
+const API_URL = import.meta.env.VITE_API_URL || 'https://intense-meadow-21950-fa90af6f25e4.herokuapp.com';
 
 const api = axios.create({
   baseURL: `${API_URL}/api`,
@@ -16,6 +16,12 @@ api.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+
+    // Se for FormData, remover Content-Type para o browser definir automaticamente
+    if (config.data instanceof FormData) {
+      delete config.headers['Content-Type'];
+    }
+
     return config;
   },
   (error) => Promise.reject(error)
@@ -56,17 +62,37 @@ api.interceptors.response.use(
 
 // Auth
 export const authAPI = {
-  register: (data) => api.post('/auth/register/', data),
-  login: (data) => api.post('/auth/login/', data),
+  register: (data) => {
+    // Garantir que estamos enviando JSON puro
+    return api.post('/auth/register/', data, {
+      headers: { 'Content-Type': 'application/json' }
+    });
+  },
+
+  login: (data) => {
+    return api.post('/auth/login/', data, {
+      headers: { 'Content-Type': 'application/json' }
+    });
+  },
+
   updateProfile: (data) => {
+    // Se for FormData, manter como está
+    if (data instanceof FormData) {
+      return api.patch('/auth/profile/', data, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+    }
+
+    // Se for objeto comum, converter para FormData
     const formData = new FormData();
     Object.keys(data).forEach(key => {
       if (data[key] !== null && data[key] !== undefined) {
         formData.append(key, data[key]);
       }
     });
-    return api.put('/auth/profile/', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
+
+    return api.patch('/auth/profile/', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
     });
   },
 };

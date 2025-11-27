@@ -1,17 +1,6 @@
 import React, { useState, useEffect } from "react";
 import PropTypes from "prop-types";
 
-/**
- * ProfileEdit
- *
- * Props:
- * - initialProfile: { name, email, bio, location, avatarUrl }
- * - onSave(profileData): called with FormData if avatar is a File, otherwise plain object
- * - onCancel()
- *
- * Usage:
- * <ProfileEdit initialProfile={profile} onSave={handleSave} onCancel={handleCancel} />
- */
 export default function ProfileEdit({ initialProfile = {}, onSave, onCancel }) {
     const [name, setName] = useState(initialProfile.name || "");
     const [email, setEmail] = useState(initialProfile.email || "");
@@ -48,21 +37,25 @@ export default function ProfileEdit({ initialProfile = {}, onSave, onCancel }) {
 
         setSaving(true);
         try {
-            // If avatarFile present, prepare FormData (common for file upload)
             if (avatarFile) {
                 const fd = new FormData();
-                fd.append("name", name);
+                fd.append("first_name", name.split(' ')[0] || "");
+                fd.append("last_name", name.split(' ').slice(1).join(' ') || "")
                 fd.append("email", email);
                 fd.append("bio", bio);
-                fd.append("location", location);
-                fd.append("avatar", avatarFile);
+                fd.append("profile_picture", avatarFile);
                 await Promise.resolve(onSave ? onSave(fd) : Promise.resolve());
             } else {
-                const payload = { name, email, bio, location, avatarUrl: initialProfile.avatarUrl || "" };
+                const payload = {
+                    first_name: name.split(' ')[0] || "",
+                    last_name: name.split(' ').slice(1).join(' ') || "",
+                    email,
+                    bio,
+                    profile_picture: initialProfile.avatarUrl || ""
+                };
                 await Promise.resolve(onSave ? onSave(payload) : Promise.resolve());
             }
         } catch (err) {
-            // simple error handling: attach general message
             setErrors((prev) => ({ ...prev, submit: err.message || "Erro ao salvar." }));
         } finally {
             setSaving(false);

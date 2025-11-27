@@ -1,7 +1,6 @@
 import { createContext, useState, useEffect } from 'react';
 import { authAPI } from '../services/api';
 
-// Criar o contexto que estava faltando
 export const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
@@ -22,21 +21,48 @@ export const AuthProvider = ({ children }) => {
             const response = await authAPI.login({ username, password });
             const data = response.data || {};
 
-            // aceitar ambas variantes de nomes de token
+            console.log('Login response:', data);
+
             const access = data.access ?? data.access_token;
             const refresh = data.refresh ?? data.refresh_token;
             const userData = data.user ?? data.userData ?? data;
 
-            if (access) localStorage.setItem('access_token', access);
-            if (refresh) localStorage.setItem('refresh_token', refresh);
-            if (userData) localStorage.setItem('user', JSON.stringify(userData));
+            if (access) {
+                localStorage.setItem('access_token', access);
+            }
+            if (refresh) {
+                localStorage.setItem('refresh_token', refresh);
+            }
+            if (userData) {
+                localStorage.setItem('user', JSON.stringify(userData));
+                setUser(userData);
+            }
 
-            setUser(userData || null);
             return { success: true };
         } catch (error) {
+            console.error('Login error:', error.response?.data || error); // Debug
+
+            // Trata diferentes formatos de erro
+            let errorMessage = 'Erro ao fazer login';
+
+            if (error.response?.data) {
+                const data = error.response.data;
+                if (typeof data === 'string') {
+                    errorMessage = data;
+                } else if (data.error) {
+                    errorMessage = data.error;
+                } else if (data.detail) {
+                    errorMessage = data.detail;
+                } else if (data.non_field_errors) {
+                    errorMessage = Array.isArray(data.non_field_errors)
+                        ? data.non_field_errors[0]
+                        : data.non_field_errors;
+                }
+            }
+
             return {
                 success: false,
-                error: error.response?.data?.error || error.response?.data || 'Erro ao fazer login'
+                error: errorMessage
             };
         } finally {
             setLoading(false);
@@ -46,12 +72,53 @@ export const AuthProvider = ({ children }) => {
     const register = async (data) => {
         setLoading(true);
         try {
-            await authAPI.register(data);
+            const response = await authAPI.register(data);
+            const responseData = response.data || {};
+
+            console.log('Register response:', responseData); // Debug
+
+            // Se o registro retornar tokens, faz login automático
+            const access = responseData.access ?? responseData.access_token;
+            const refresh = responseData.refresh ?? responseData.refresh_token;
+            const userData = responseData.user ?? responseData.userData;
+
+            if (access && refresh && userData) {
+                localStorage.setItem('access_token', access);
+                localStorage.setItem('refresh_token', refresh);
+                localStorage.setItem('user', JSON.stringify(userData));
+                setUser(userData);
+            }
+
             return { success: true };
         } catch (error) {
+            console.error('Register error:', error.response?.data || error); // Debug
+
+            // Trata diferentes formatos de erro
+            let errorData = 'Erro ao registrar';
+
+            if (error.response?.data) {
+                const data = error.response.data;
+
+                // Se for um objeto com erros de campo
+                if (typeof data === 'object' && !data.error && !data.detail) {
+                    // Retorna o objeto completo de erros
+                    errorData = data;
+                } else if (typeof data === 'string') {
+                    errorData = data;
+                } else if (data.error) {
+                    errorData = data.error;
+                } else if (data.detail) {
+                    errorData = data.detail;
+                } else if (data.non_field_errors) {
+                    errorData = Array.isArray(data.non_field_errors)
+                        ? data.non_field_errors[0]
+                        : data.non_field_errors;
+                }
+            }
+
             return {
                 success: false,
-                error: error.response?.data || 'Erro ao registrar'
+                error: errorData
             };
         } finally {
             setLoading(false);

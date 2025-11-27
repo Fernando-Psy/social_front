@@ -1,23 +1,6 @@
 import React from "react";
 import PropTypes from "prop-types";
 
-// /mnt/projetos/front_end/social_front/src/components/profile/ProfileHeader.jsx
-
-/**
- * ProfileHeader
- * Props:
- *  - user: { id, name, username, avatarUrl, bio, location, website, counts: { posts, followers, following } }
- *  - isCurrentUser: boolean
- *  - onFollowToggle: (userId) => void
- *  - onEditProfile: () => void
- *
- * Comportamento:
- *  - Mostra avatar, nome, @username, bio, localização, website e contadores.
- *  - Se isCurrentUser true, mostra botão "Editar Perfil".
- *  - Senão, mostra botão "Seguir / Seguindo" que dispara onFollowToggle.
- *
- * Estilos simples inline para evitar dependências externas.
- */
 
 const s = {
     container: {

@@ -8,10 +8,12 @@ const RegisterForm = () => {
     username: '',
     email: '',
     password: '',
+    password2: '',
     first_name: '',
     last_name: '',
   });
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const { register } = useAuth();
   const navigate = useNavigate();
@@ -19,23 +21,65 @@ const RegisterForm = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setFieldErrors({});
+
+    // Validação no frontend
+    if (formData.password !== formData.password2) {
+      setError('As senhas não coincidem');
+      return;
+    }
+
+    if (formData.password.length < 8) {
+      setError('A senha deve ter no mínimo 8 caracteres');
+      return;
+    }
+
     setLoading(true);
 
     const result = await register(formData);
 
     if (result.success) {
-      navigate('/login', {
-        state: { message: 'Conta criada com sucesso! Faça login.' }
-      });
+      // Se o registro retornar tokens, vai fazer login automático
+      navigate('/');
     } else {
-      setError(JSON.stringify(result.error));
+      // Trata diferentes tipos de erro
+      if (typeof result.error === 'object') {
+        // Erros de campo específicos (username, email, etc)
+        setFieldErrors(result.error);
+
+        // Monta mensagem geral
+        const errorMessages = Object.entries(result.error)
+          .map(([field, messages]) => {
+            const fieldName = {
+              username: 'Usuário',
+              email: 'E-mail',
+              password: 'Senha',
+              password2: 'Confirmação de senha'
+            }[field] || field;
+
+            const message = Array.isArray(messages) ? messages[0] : messages;
+            return `${fieldName}: ${message}`;
+          })
+          .join('. ');
+
+        setError(errorMessages);
+      } else {
+        // Erro genérico
+        setError(result.error);
+      }
     }
 
     setLoading(false);
   };
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: value });
+
+    // Limpa erro do campo quando usuário começa a digitar
+    if (fieldErrors[name]) {
+      setFieldErrors({ ...fieldErrors, [name]: null });
+    }
   };
 
   return (
@@ -73,9 +117,12 @@ const RegisterForm = () => {
                 required
                 value={formData.username}
                 onChange={handleChange}
-                className="input-field mt-1"
+                className={`input-field mt-1 ${fieldErrors.username ? 'border-red-500' : ''}`}
                 placeholder="Escolha um nome de usuário"
               />
+              {fieldErrors.username && (
+                <p className="mt-1 text-sm text-red-600">{fieldErrors.username}</p>
+              )}
             </div>
 
             <div>
@@ -89,9 +136,12 @@ const RegisterForm = () => {
                 required
                 value={formData.email}
                 onChange={handleChange}
-                className="input-field mt-1"
+                className={`input-field mt-1 ${fieldErrors.email ? 'border-red-500' : ''}`}
                 placeholder="seu@email.com"
               />
+              {fieldErrors.email && (
+                <p className="mt-1 text-sm text-red-600">{fieldErrors.email}</p>
+              )}
             </div>
 
             <div>
@@ -105,9 +155,33 @@ const RegisterForm = () => {
                 required
                 value={formData.password}
                 onChange={handleChange}
-                className="input-field mt-1"
+                className={`input-field mt-1 ${fieldErrors.password ? 'border-red-500' : ''}`}
                 placeholder="Mínimo 8 caracteres"
+                minLength={8}
               />
+              {fieldErrors.password && (
+                <p className="mt-1 text-sm text-red-600">{fieldErrors.password}</p>
+              )}
+            </div>
+
+            <div>
+              <label htmlFor="password2" className="block text-sm font-medium text-gray-700">
+                Confirmar Senha *
+              </label>
+              <input
+                id="password2"
+                name="password2"
+                type="password"
+                required
+                value={formData.password2}
+                onChange={handleChange}
+                className={`input-field mt-1 ${fieldErrors.password2 ? 'border-red-500' : ''}`}
+                placeholder="Digite a senha novamente"
+                minLength={8}
+              />
+              {fieldErrors.password2 && (
+                <p className="mt-1 text-sm text-red-600">{fieldErrors.password2}</p>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-4">

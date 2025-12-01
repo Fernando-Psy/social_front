@@ -23,7 +23,6 @@ const RegisterForm = () => {
     setError('');
     setFieldErrors({});
 
-    // Validação no frontend
     if (formData.password !== formData.password2) {
       setError('As senhas não coincidem');
       return;
@@ -43,8 +42,6 @@ const RegisterForm = () => {
     } else {
       if (typeof result.error === 'object') {
         setFieldErrors(result.error);
-
-        // Monta mensagem geral
         const errorMessages = Object.entries(result.error)
           .map(([field, messages]) => {
             const fieldName = {
@@ -53,12 +50,10 @@ const RegisterForm = () => {
               password: 'Senha',
               password2: 'Confirmação de senha'
             }[field] || field;
-
             const message = Array.isArray(messages) ? messages[0] : messages;
             return `${fieldName}: ${message}`;
           })
           .join('. ');
-
         setError(errorMessages);
       } else {
         setError(result.error);
@@ -71,8 +66,6 @@ const RegisterForm = () => {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
-
-    // Limpa erro do campo quando usuário começa a digitar
     if (fieldErrors[name]) {
       setFieldErrors({ ...fieldErrors, [name]: null });
     }
@@ -103,7 +96,7 @@ const RegisterForm = () => {
 
           <div className="space-y-4">
             <div>
-              <label htmlFor="username" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-1">
                 Usuário *
               </label>
               <input
@@ -113,8 +106,11 @@ const RegisterForm = () => {
                 required
                 value={formData.username}
                 onChange={handleChange}
-                className={`input-field mt-1 ${fieldErrors.username ? 'border-red-500' : ''}`}
+                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white text-gray-900 ${
+                  fieldErrors.username ? 'border-red-500' : 'border-gray-300'
+                }`}
                 placeholder="Escolha um nome de usuário"
+                autoComplete="username"
               />
               {fieldErrors.username && (
                 <p className="mt-1 text-sm text-red-600">{fieldErrors.username}</p>
@@ -122,7 +118,7 @@ const RegisterForm = () => {
             </div>
 
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
                 E-mail *
               </label>
               <input
@@ -132,8 +128,11 @@ const RegisterForm = () => {
                 required
                 value={formData.email}
                 onChange={handleChange}
-                className={`input-field mt-1 ${fieldErrors.email ? 'border-red-500' : ''}`}
+                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white text-gray-900 ${
+                  fieldErrors.email ? 'border-red-500' : 'border-gray-300'
+                }`}
                 placeholder="seu@email.com"
+                autoComplete="email"
               />
               {fieldErrors.email && (
                 <p className="mt-1 text-sm text-red-600">{fieldErrors.email}</p>
@@ -141,7 +140,7 @@ const RegisterForm = () => {
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
                 Senha *
               </label>
               <input
@@ -151,9 +150,12 @@ const RegisterForm = () => {
                 required
                 value={formData.password}
                 onChange={handleChange}
-                className={`input-field mt-1 ${fieldErrors.password ? 'border-red-500' : ''}`}
+                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white text-gray-900 ${
+                  fieldErrors.password ? 'border-red-500' : 'border-gray-300'
+                }`}
                 placeholder="Mínimo 8 caracteres"
                 minLength={8}
+                autoComplete="new-password"
               />
               {fieldErrors.password && (
                 <p className="mt-1 text-sm text-red-600">{fieldErrors.password}</p>
@@ -161,7 +163,7 @@ const RegisterForm = () => {
             </div>
 
             <div>
-              <label htmlFor="password2" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="password2" className="block text-sm font-medium text-gray-700 mb-1">
                 Confirmar Senha *
               </label>
               <input
@@ -171,9 +173,12 @@ const RegisterForm = () => {
                 required
                 value={formData.password2}
                 onChange={handleChange}
-                className={`input-field mt-1 ${fieldErrors.password2 ? 'border-red-500' : ''}`}
+                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white text-gray-900 ${
+                  fieldErrors.password2 ? 'border-red-500' : 'border-gray-300'
+                }`}
                 placeholder="Digite a senha novamente"
                 minLength={8}
+                autoComplete="new-password"
               />
               {fieldErrors.password2 && (
                 <p className="mt-1 text-sm text-red-600">{fieldErrors.password2}</p>
@@ -182,7 +187,7 @@ const RegisterForm = () => {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label htmlFor="first_name" className="block text-sm font-medium text-gray-700">
+                <label htmlFor="first_name" className="block text-sm font-medium text-gray-700 mb-1">
                   Nome
                 </label>
                 <input
@@ -191,13 +196,14 @@ const RegisterForm = () => {
                   type="text"
                   value={formData.first_name}
                   onChange={handleChange}
-                  className="input-field mt-1"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white text-gray-900"
                   placeholder="Nome"
+                  autoComplete="given-name"
                 />
               </div>
 
               <div>
-                <label htmlFor="last_name" className="block text-sm font-medium text-gray-700">
+                <label htmlFor="last_name" className="block text-sm font-medium text-gray-700 mb-1">
                   Sobrenome
                 </label>
                 <input
@@ -206,8 +212,9 @@ const RegisterForm = () => {
                   type="text"
                   value={formData.last_name}
                   onChange={handleChange}
-                  className="input-field mt-1"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white text-gray-900"
                   placeholder="Sobrenome"
+                  autoComplete="family-name"
                 />
               </div>
             </div>

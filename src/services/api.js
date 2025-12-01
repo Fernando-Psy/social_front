@@ -63,7 +63,6 @@ api.interceptors.response.use(
 // Auth
 export const authAPI = {
   register: (data) => {
-    // Garantir que estamos enviando JSON puro
     return api.post('/auth/register/', data, {
       headers: { 'Content-Type': 'application/json' }
     });
@@ -76,14 +75,12 @@ export const authAPI = {
   },
 
   updateProfile: (data) => {
-    // Se for FormData, manter como está
     if (data instanceof FormData) {
       return api.patch('/auth/profile/', data, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
     }
 
-    // Se for objeto comum, converter para FormData
     const formData = new FormData();
     Object.keys(data).forEach(key => {
       if (data[key] !== null && data[key] !== undefined) {
@@ -95,6 +92,11 @@ export const authAPI = {
       headers: { 'Content-Type': 'multipart/form-data' }
     });
   },
+};
+
+// Users
+export const usersAPI = {
+  getAll: () => api.get('/auth/list/'),
 };
 
 // Posts

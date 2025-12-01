@@ -6,6 +6,7 @@ import RegisterForm from './components/auth/RegisterForm';
 import Home from './pages/Home';
 import Profile from './pages/Profile';
 import Followers from './pages/Followers';
+import Discover from './pages/Discover';
 
 const PrivateRoute = ({ children }) => {
   const { user, loading } = useAuth();
@@ -75,6 +76,14 @@ function AppRoutes() {
         element={
           <PrivateRoute>
             <Followers />
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/discover"
+        element={
+          <PrivateRoute>
+            <Discover />
           </PrivateRoute>
         }
       />

@@ -1,5 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { Home, Users, User, LogOut } from 'lucide-react';
+import { Home, Users, User, LogOut, Compass } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 
 const Navbar = () => {
@@ -8,11 +8,9 @@ const Navbar = () => {
 
     const handleLogout = async () => {
         try {
-            // Se logout for síncrono, await não causa problema; se for assíncrono, aguardamos a conclusão
             await logout();
             navigate('/login');
         } catch (err) {
-            // Lide com erro conforme necessário (toast, console, etc.)
             console.error('Logout failed', err);
         }
     };
@@ -34,6 +32,15 @@ const Navbar = () => {
                         >
                             <Home className="w-5 h-5" aria-hidden="true" />
                             <span className="hidden sm:inline">Feed</span>
+                        </Link>
+
+                        <Link
+                            to="/discover"
+                            className="flex items-center space-x-1 text-gray-700 hover:text-blue-600 transition-colors"
+                            aria-label="Descobrir"
+                        >
+                            <Compass className="w-5 h-5" aria-hidden="true" />
+                            <span className="hidden sm:inline">Descobrir</span>
                         </Link>
 
                         <Link

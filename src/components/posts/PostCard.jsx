@@ -10,6 +10,7 @@ const PostCard = ({ post, onDelete }) => {
   const [showComments, setShowComments] = useState(false);
   const [newComment, setNewComment] = useState('');
   const [loading, setLoading] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const isLiked = likes.some(like => like.user.id === user.id);
   const isOwner = post.user.id === user.id;
@@ -25,6 +26,7 @@ const PostCard = ({ post, onDelete }) => {
       }
     } catch (error) {
       console.error('Erro ao curtir:', error);
+      alert('Erro ao curtir post. Tente novamente.');
     }
   };
 
@@ -39,19 +41,40 @@ const PostCard = ({ post, onDelete }) => {
       setNewComment('');
     } catch (error) {
       console.error('Erro ao comentar:', error);
+      alert('Erro ao comentar. Tente novamente.');
     } finally {
       setLoading(false);
     }
   };
 
   const handleDelete = async () => {
-    if (window.confirm('Tem certeza que deseja excluir este post?')) {
-      try {
-        await postsAPI.delete(post.id);
-        if (onDelete) onDelete(post.id);
-      } catch (error) {
-        console.error('Erro ao excluir:', error);
+    if (!window.confirm('Tem certeza que deseja excluir este post?')) {
+      return;
+    }
+
+    setDeleting(true);
+    try {
+      await postsAPI.delete(post.id);
+
+      // Chamar callback de deletar
+      if (onDelete) {
+        onDelete(post.id);
       }
+
+      alert('Post deletado com sucesso!');
+    } catch (error) {
+      console.error('Erro ao excluir:', error);
+
+      // Tratar diferentes tipos de erro
+      if (error.response?.status === 403) {
+        alert('Você não tem permissão para deletar este post.');
+      } else if (error.response?.status === 404) {
+        alert('Post não encontrado.');
+      } else {
+        alert('Erro ao deletar post. Tente novamente.');
+      }
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -70,9 +93,17 @@ const PostCard = ({ post, onDelete }) => {
     <div className="card mb-4">
       <div className="flex justify-between items-start mb-4">
         <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold">
-            {post.user.username[0].toUpperCase()}
-          </div>
+          {post.user.profile_picture ? (
+            <img
+              src={post.user.profile_picture}
+              alt={post.user.username}
+              className="w-10 h-10 rounded-full object-cover"
+            />
+          ) : (
+            <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold">
+              {post.user.username[0].toUpperCase()}
+            </div>
+          )}
           <div>
             <h3 className="font-semibold text-gray-900">{post.user.username}</h3>
             <p className="text-xs text-gray-500">{formatDate(post.created_at)}</p>
@@ -81,14 +112,18 @@ const PostCard = ({ post, onDelete }) => {
         {isOwner && (
           <button
             onClick={handleDelete}
-            className="text-red-500 hover:text-red-700 transition-colors"
+            disabled={deleting}
+            className="text-red-500 hover:text-red-700 transition-colors disabled:opacity-50"
+            title="Deletar post"
           >
             <Trash2 className="w-5 h-5" />
           </button>
         )}
       </div>
 
-      <p className="text-gray-800 mb-4 whitespace-pre-wrap">{post.content}</p>
+      {post.content && (
+        <p className="text-gray-800 mb-4 whitespace-pre-wrap">{post.content}</p>
+      )}
 
       {post.image && (
         <img
@@ -127,14 +162,14 @@ const PostCard = ({ post, onDelete }) => {
                 value={newComment}
                 onChange={(e) => setNewComment(e.target.value)}
                 placeholder="Escreva um comentário..."
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white text-gray-900"
               />
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loading || !newComment.trim()}
                 className="btn-primary disabled:opacity-50"
               >
-                Enviar
+                {loading ? 'Enviando...' : 'Enviar'}
               </button>
             </div>
           </form>

@@ -13,6 +13,7 @@ const Profile = () => {
     email: user?.email || '',
     first_name: user?.first_name || '',
     last_name: user?.last_name || '',
+    bio: user?.bio || '',
   });
   const [profilePicture, setProfilePicture] = useState(null);
   const [preview, setPreview] = useState(user?.profile_picture || null);
@@ -25,12 +26,25 @@ const Profile = () => {
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
+      // Validar tamanho (5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        setError('A imagem deve ter no máximo 5MB');
+        return;
+      }
+
+      // Validar tipo
+      if (!file.type.startsWith('image/')) {
+        setError('O arquivo deve ser uma imagem');
+        return;
+      }
+
       setProfilePicture(file);
       const reader = new FileReader();
       reader.onloadend = () => {
         setPreview(reader.result);
       };
       reader.readAsDataURL(file);
+      setError('');
     }
   };
 
@@ -40,33 +54,42 @@ const Profile = () => {
     setError('');
 
     try {
-      // Criar FormData para enviar com a imagem
+      // Criar FormData
       const formDataToSend = new FormData();
 
-      // Adicionar campos apenas se foram modificados
-      if (formData.username !== user?.username) {
-        formDataToSend.append('username', formData.username);
-      }
-      if (formData.email !== user?.email) {
-        formDataToSend.append('email', formData.email);
-      }
-      if (formData.first_name !== user?.first_name) {
-        formDataToSend.append('first_name', formData.first_name);
-      }
-      if (formData.last_name !== user?.last_name) {
-        formDataToSend.append('last_name', formData.last_name);
-      }
+      // Adicionar campos que foram modificados
+      Object.keys(formData).forEach((key) => {
+        if (formData[key] !== user?.[key]) {
+          formDataToSend.append(key, formData[key] || '');
+        }
+      });
 
       // Adicionar imagem se houver
       if (profilePicture) {
         formDataToSend.append('profile_picture', profilePicture);
       }
 
+      console.log('Enviando dados:');
+      for (let pair of formDataToSend.entries()) {
+        console.log(pair[0], pair[1]);
+      }
+
       const response = await authAPI.updateProfile(formDataToSend);
 
-      updateUser(response.data.user || response.data);
+      console.log('Resposta:', response.data);
+
+      // Atualizar contexto com novos dados
+      const updatedUser = response.data.user || response.data;
+      updateUser(updatedUser);
+
+      // Atualizar preview com a URL da imagem do servidor
+      if (updatedUser.profile_picture) {
+        setPreview(updatedUser.profile_picture);
+      }
+
       setEditing(false);
       setProfilePicture(null);
+      alert('Perfil atualizado com sucesso!');
     } catch (error) {
       console.error('Erro ao atualizar perfil:', error);
 
@@ -79,7 +102,6 @@ const Profile = () => {
         } else if (errorData.detail) {
           setError(errorData.detail);
         } else {
-          // Se for um objeto com erros de campo
           const errorMessages = Object.entries(errorData)
             .map(([field, messages]) => {
               const fieldName = {
@@ -87,7 +109,8 @@ const Profile = () => {
                 email: 'E-mail',
                 first_name: 'Nome',
                 last_name: 'Sobrenome',
-                profile_picture: 'Foto de perfil'
+                profile_picture: 'Foto de perfil',
+                bio: 'Bio'
               }[field] || field;
 
               const message = Array.isArray(messages) ? messages[0] : messages;
@@ -113,6 +136,7 @@ const Profile = () => {
       email: user?.email || '',
       first_name: user?.first_name || '',
       last_name: user?.last_name || '',
+      bio: user?.bio || '',
     });
     setPreview(user?.profile_picture || null);
     setProfilePicture(null);
@@ -157,6 +181,9 @@ const Profile = () => {
                     {user.first_name} {user.last_name}
                   </p>
                 )}
+                {user?.bio && (
+                  <p className="text-gray-600 mt-2 italic">{user.bio}</p>
+                )}
               </div>
             )}
           </div>
@@ -170,49 +197,61 @@ const Profile = () => {
           {editing ? (
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700">Usuário</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Usuário</label>
                 <input
                   type="text"
                   name="username"
                   value={formData.username}
                   onChange={handleChange}
-                  className="input-field mt-1"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white text-gray-900"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700">E-mail</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">E-mail</label>
                 <input
                   type="email"
                   name="email"
                   value={formData.email}
                   onChange={handleChange}
-                  className="input-field mt-1"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white text-gray-900"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Nome</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Nome</label>
                   <input
                     type="text"
                     name="first_name"
                     value={formData.first_name}
                     onChange={handleChange}
-                    className="input-field mt-1"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white text-gray-900"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Sobrenome</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Sobrenome</label>
                   <input
                     type="text"
                     name="last_name"
                     value={formData.last_name}
                     onChange={handleChange}
-                    className="input-field mt-1"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white text-gray-900"
                   />
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Bio</label>
+                <textarea
+                  name="bio"
+                  value={formData.bio}
+                  onChange={handleChange}
+                  rows="3"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white text-gray-900 resize-none"
+                  placeholder="Conte um pouco sobre você..."
+                />
               </div>
 
               <div className="flex space-x-3">
@@ -226,7 +265,8 @@ const Profile = () => {
                 <button
                   type="button"
                   onClick={handleCancel}
-                  className="flex-1 btn-secondary"
+                  disabled={loading}
+                  className="flex-1 btn-secondary disabled:opacity-50"
                 >
                   Cancelar
                 </button>

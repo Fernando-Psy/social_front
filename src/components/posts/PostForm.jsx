@@ -67,6 +67,10 @@ const PostForm = ({ onPostCreated }) => {
                     placeholder="No que você está pensando?"
                     className="w-full p-3 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                     rows="3"
+                    style={{
+                        color: '#000',
+                        backgroundColor: '#fff',
+                    }}
                 />
 
                 {imagePreview && (

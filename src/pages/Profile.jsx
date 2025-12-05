@@ -8,6 +8,7 @@ const Profile = () => {
   const { user, updateUser } = useAuth();
   const [editing, setEditing] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [formData, setFormData] = useState({
     username: user?.username || '',
     email: user?.email || '',
@@ -15,36 +16,79 @@ const Profile = () => {
     last_name: user?.last_name || '',
     bio: user?.bio || '',
   });
-  const [profilePicture, setProfilePicture] = useState(null);
+  const [profilePictureUrl, setProfilePictureUrl] = useState(user?.profile_picture || '');
   const [preview, setPreview] = useState(user?.profile_picture || null);
   const [error, setError] = useState('');
+
+  // Credenciais Cloudinary
+  const CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
+  const UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleImageChange = (e) => {
+  const uploadToCloudinary = async (file) => {
+    const formDataUpload = new FormData();
+    formDataUpload.append('file', file);
+    formDataUpload.append('upload_preset', UPLOAD_PRESET);
+    formDataUpload.append('folder', 'social_api/profiles');
+
+    const response = await fetch(
+      `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`,
+      {
+        method: 'POST',
+        body: formDataUpload,
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error('Falha no upload para Cloudinary');
+    }
+
+    return await response.json();
+  };
+
+  const handleImageChange = async (e) => {
     const file = e.target.files[0];
-    if (file) {
-      // Validar tamanho (5MB)
-      if (file.size > 5 * 1024 * 1024) {
-        setError('A imagem deve ter no máximo 5MB');
-        return;
-      }
+    if (!file) return;
 
-      // Validar tipo
-      if (!file.type.startsWith('image/')) {
-        setError('O arquivo deve ser uma imagem');
-        return;
-      }
+    // Validar tamanho (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setError('A imagem deve ter no máximo 5MB');
+      return;
+    }
 
-      setProfilePicture(file);
+    // Validar tipo
+    if (!file.type.startsWith('image/')) {
+      setError('O arquivo deve ser uma imagem');
+      return;
+    }
+
+    setUploading(true);
+    setError('');
+
+    try {
+      // Preview local imediato
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setPreview(reader.result);
-      };
+      reader.onloadend = () => setPreview(reader.result);
       reader.readAsDataURL(file);
-      setError('');
+
+      // Upload para Cloudinary
+      const data = await uploadToCloudinary(file);
+      const imageUrl = data.secure_url;
+
+      console.log('✅ Upload da foto de perfil concluído:', imageUrl);
+
+      // Salvar URL
+      setProfilePictureUrl(imageUrl);
+      setPreview(imageUrl);
+    } catch (err) {
+      console.error('❌ Erro no upload:', err);
+      setError('Erro ao fazer upload da imagem');
+      setPreview(user?.profile_picture || null);
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -54,27 +98,15 @@ const Profile = () => {
     setError('');
 
     try {
-      // Criar FormData
-      const formDataToSend = new FormData();
+      // Criar payload apenas com URL da imagem
+      const payload = {
+        ...formData,
+        profile_picture: profilePictureUrl || ''
+      };
 
-      // Adicionar campos que foram modificados
-      Object.keys(formData).forEach((key) => {
-        if (formData[key] !== user?.[key]) {
-          formDataToSend.append(key, formData[key] || '');
-        }
-      });
+      console.log('Enviando dados:', payload);
 
-      // Adicionar imagem se houver
-      if (profilePicture) {
-        formDataToSend.append('profile_picture', profilePicture);
-      }
-
-      console.log('Enviando dados:');
-      for (let pair of formDataToSend.entries()) {
-        console.log(pair[0], pair[1]);
-      }
-
-      const response = await authAPI.updateProfile(formDataToSend);
+      const response = await authAPI.updateProfile(payload);
 
       console.log('Resposta:', response.data);
 
@@ -82,13 +114,13 @@ const Profile = () => {
       const updatedUser = response.data.user || response.data;
       updateUser(updatedUser);
 
-      // Atualizar preview com a URL da imagem do servidor
+      // Atualizar preview
       if (updatedUser.profile_picture) {
         setPreview(updatedUser.profile_picture);
+        setProfilePictureUrl(updatedUser.profile_picture);
       }
 
       setEditing(false);
-      setProfilePicture(null);
       alert('Perfil atualizado com sucesso!');
     } catch (error) {
       console.error('Erro ao atualizar perfil:', error);
@@ -139,7 +171,7 @@ const Profile = () => {
       bio: user?.bio || '',
     });
     setPreview(user?.profile_picture || null);
-    setProfilePicture(null);
+    setProfilePictureUrl(user?.profile_picture || '');
   };
 
   return (
@@ -160,17 +192,26 @@ const Profile = () => {
                 </div>
               )}
               {editing && (
-                <label className="absolute bottom-0 right-0 bg-blue-600 text-white rounded-full p-2 cursor-pointer hover:bg-blue-700">
-                  <Camera className="w-5 h-5" />
+                <label className="absolute bottom-0 right-0 bg-blue-600 text-white rounded-full p-2 cursor-pointer hover:bg-blue-700 transition shadow-lg">
+                  {uploading ? (
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  ) : (
+                    <Camera className="w-5 h-5" />
+                  )}
                   <input
                     type="file"
                     accept="image/*"
                     onChange={handleImageChange}
                     className="hidden"
+                    disabled={uploading}
                   />
                 </label>
               )}
             </div>
+
+            {uploading && (
+              <p className="text-sm text-blue-600 mt-2">Fazendo upload...</p>
+            )}
 
             {!editing && (
               <div className="text-center mt-4">
@@ -195,7 +236,7 @@ const Profile = () => {
           )}
 
           {editing ? (
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Usuário</label>
                 <input
@@ -256,8 +297,8 @@ const Profile = () => {
 
               <div className="flex space-x-3">
                 <button
-                  type="submit"
-                  disabled={loading}
+                  onClick={handleSubmit}
+                  disabled={loading || uploading}
                   className="flex-1 btn-primary disabled:opacity-50"
                 >
                   {loading ? 'Salvando...' : 'Salvar'}
@@ -265,13 +306,13 @@ const Profile = () => {
                 <button
                   type="button"
                   onClick={handleCancel}
-                  disabled={loading}
+                  disabled={loading || uploading}
                   className="flex-1 btn-secondary disabled:opacity-50"
                 >
                   Cancelar
                 </button>
               </div>
-            </form>
+            </div>
           ) : (
             <button onClick={() => setEditing(true)} className="w-full btn-primary">
               Editar Perfil

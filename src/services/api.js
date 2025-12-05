@@ -16,6 +16,12 @@ api.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+
+    // Se for FormData, remover Content-Type para o browser definir automaticamente
+    if (config.data instanceof FormData) {
+      delete config.headers['Content-Type'];
+    }
+
     return config;
   },
   (error) => Promise.reject(error)
@@ -69,9 +75,21 @@ export const authAPI = {
   },
 
   updateProfile: (data) => {
-    // Agora sempre envia JSON com URLs
-    return api.patch('/auth/profile/', data, {
-      headers: { 'Content-Type': 'application/json' }
+    if (data instanceof FormData) {
+      return api.patch('/auth/profile/', data, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+    }
+
+    const formData = new FormData();
+    Object.keys(data).forEach(key => {
+      if (data[key] !== null && data[key] !== undefined) {
+        formData.append(key, data[key]);
+      }
+    });
+
+    return api.patch('/auth/profile/', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
     });
   },
 };
@@ -85,17 +103,16 @@ export const usersAPI = {
 export const postsAPI = {
   getAll: () => api.get('/posts/'),
   getById: (id) => api.get(`/posts/${id}/`),
-
   create: (data) => {
-    // Agora envia JSON com URL da imagem (não arquivo)
-    return api.post('/posts/', {
-      content: data.content,
-      image: data.image || null
-    }, {
-      headers: { 'Content-Type': 'application/json' },
+    const formData = new FormData();
+    formData.append('content', data.content);
+    if (data.image) {
+      formData.append('image', data.image);
+    }
+    return api.post('/posts/', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
     });
   },
-
   update: (id, data) => api.put(`/posts/${id}/`, data),
   delete: (id) => api.delete(`/posts/${id}/`),
   like: (id) => api.post(`/posts/${id}/like/`),

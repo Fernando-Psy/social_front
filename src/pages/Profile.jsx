@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { Camera } from 'lucide-react';
 import Layout from '../components/layout/Layout';
 import { useAuth } from '../hooks/useAuth';
 import { authAPI } from '../services/api';
+import ImageUpload from '../components/common/ImageUpload';
 
 const Profile = () => {
   const { user, updateUser } = useAuth();
@@ -15,37 +15,15 @@ const Profile = () => {
     last_name: user?.last_name || '',
     bio: user?.bio || '',
   });
-  const [profilePicture, setProfilePicture] = useState(null);
-  const [preview, setPreview] = useState(user?.profile_picture || null);
+  const [profilePictureUrl, setProfilePictureUrl] = useState(user?.profile_picture || null);
   const [error, setError] = useState('');
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      // Validar tamanho (5MB)
-      if (file.size > 5 * 1024 * 1024) {
-        setError('A imagem deve ter no máximo 5MB');
-        return;
-      }
-
-      // Validar tipo
-      if (!file.type.startsWith('image/')) {
-        setError('O arquivo deve ser uma imagem');
-        return;
-      }
-
-      setProfilePicture(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setPreview(reader.result);
-      };
-      reader.readAsDataURL(file);
-      setError('');
-    }
+  const handleImageUploaded = (url) => {
+    setProfilePictureUrl(url);
   };
 
   const handleSubmit = async (e) => {
@@ -54,41 +32,22 @@ const Profile = () => {
     setError('');
 
     try {
-      // Criar FormData
-      const formDataToSend = new FormData();
+      // Criar objeto JSON com os dados
+      const dataToSend = {
+        ...formData,
+        profile_picture: profilePictureUrl // URL do Cloudinary
+      };
 
-      // Adicionar campos que foram modificados
-      Object.keys(formData).forEach((key) => {
-        if (formData[key] !== user?.[key]) {
-          formDataToSend.append(key, formData[key] || '');
-        }
-      });
+      console.log('Enviando dados:', dataToSend);
 
-      // Adicionar imagem se houver
-      if (profilePicture) {
-        formDataToSend.append('profile_picture', profilePicture);
-      }
-
-      console.log('Enviando dados:');
-      for (let pair of formDataToSend.entries()) {
-        console.log(pair[0], pair[1]);
-      }
-
-      const response = await authAPI.updateProfile(formDataToSend);
+      const response = await authAPI.updateProfile(dataToSend);
 
       console.log('Resposta:', response.data);
 
-      // Atualizar contexto com novos dados
       const updatedUser = response.data.user || response.data;
       updateUser(updatedUser);
 
-      // Atualizar preview com a URL da imagem do servidor
-      if (updatedUser.profile_picture) {
-        setPreview(updatedUser.profile_picture);
-      }
-
       setEditing(false);
-      setProfilePicture(null);
       alert('Perfil atualizado com sucesso!');
     } catch (error) {
       console.error('Erro ao atualizar perfil:', error);
@@ -138,8 +97,7 @@ const Profile = () => {
       last_name: user?.last_name || '',
       bio: user?.bio || '',
     });
-    setPreview(user?.profile_picture || null);
-    setProfilePicture(null);
+    setProfilePictureUrl(user?.profile_picture || null);
   };
 
   return (
@@ -147,44 +105,33 @@ const Profile = () => {
       <div className="max-w-2xl mx-auto">
         <div className="card">
           <div className="flex flex-col items-center mb-6">
-            <div className="relative">
-              {preview ? (
-                <img
-                  src={preview}
-                  alt="Profile"
-                  className="w-32 h-32 rounded-full object-cover"
-                />
-              ) : (
-                <div className="w-32 h-32 bg-blue-500 rounded-full flex items-center justify-center text-white text-4xl font-bold">
-                  {user?.username[0].toUpperCase()}
-                </div>
-              )}
-              {editing && (
-                <label className="absolute bottom-0 right-0 bg-blue-600 text-white rounded-full p-2 cursor-pointer hover:bg-blue-700">
-                  <Camera className="w-5 h-5" />
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageChange}
-                    className="hidden"
-                  />
-                </label>
-              )}
-            </div>
-
             {!editing && (
-              <div className="text-center mt-4">
-                <h2 className="text-2xl font-bold text-gray-900">{user?.username}</h2>
-                <p className="text-gray-600">{user?.email}</p>
-                {(user?.first_name || user?.last_name) && (
-                  <p className="text-gray-700 mt-2">
-                    {user.first_name} {user.last_name}
-                  </p>
+              <>
+                {profilePictureUrl ? (
+                  <img
+                    src={profilePictureUrl}
+                    alt="Profile"
+                    className="w-32 h-32 rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="w-32 h-32 bg-blue-500 rounded-full flex items-center justify-center text-white text-4xl font-bold">
+                    {user?.username[0].toUpperCase()}
+                  </div>
                 )}
-                {user?.bio && (
-                  <p className="text-gray-600 mt-2 italic">{user.bio}</p>
-                )}
-              </div>
+
+                <div className="text-center mt-4">
+                  <h2 className="text-2xl font-bold text-gray-900">{user?.username}</h2>
+                  <p className="text-gray-600">{user?.email}</p>
+                  {(user?.first_name || user?.last_name) && (
+                    <p className="text-gray-700 mt-2">
+                      {user.first_name} {user.last_name}
+                    </p>
+                  )}
+                  {user?.bio && (
+                    <p className="text-gray-600 mt-2 italic">{user.bio}</p>
+                  )}
+                </div>
+              </>
             )}
           </div>
 
@@ -196,6 +143,17 @@ const Profile = () => {
 
           {editing ? (
             <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Foto de Perfil
+                </label>
+                <ImageUpload
+                  onImageUploaded={handleImageUploaded}
+                  currentImage={profilePictureUrl}
+                  folder="profile_pictures"
+                />
+              </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Usuário</label>
                 <input

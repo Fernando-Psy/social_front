@@ -77,7 +77,7 @@ export const authAPI = {
   updateProfile: (data) => {
     if (data instanceof FormData) {
       return api.patch('/auth/profile/', data, {
-        headers: { 'Content-Type': 'multipart/form-data' }
+        headers: { 'Content-Type': 'application/json' }
       });
     }
 
@@ -89,7 +89,7 @@ export const authAPI = {
     });
 
     return api.patch('/auth/profile/', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' }
+      headers: { 'Content-Type': 'application/json' }
     });
   },
 };
@@ -103,16 +103,16 @@ export const usersAPI = {
 export const postsAPI = {
   getAll: () => api.get('/posts/'),
   getById: (id) => api.get(`/posts/${id}/`),
+
   create: (data) => {
-    const formData = new FormData();
-    formData.append('content', data.content);
-    if (data.image) {
-      formData.append('image', data.image);
-    }
-    return api.post('/posts/', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
+    return api.post('/posts/', {
+      content: data.content || '',
+      image: data.image || null
+    }, {
+      headers: { 'Content-Type': 'application/json' },
     });
   },
+
   update: (id, data) => api.put(`/posts/${id}/`, data),
   delete: (id) => api.delete(`/posts/${id}/`),
   like: (id) => api.post(`/posts/${id}/like/`),

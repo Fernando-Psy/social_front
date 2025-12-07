@@ -1,13 +1,14 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
+import { Camera, Loader2 } from 'lucide-react';
 import Layout from '../components/layout/Layout';
 import { useAuth } from '../hooks/useAuth';
 import { authAPI } from '../services/api';
-import ImageUpload from '../components/common/ImageUpload';
 
 const Profile = () => {
   const { user, updateUser } = useAuth();
   const [editing, setEditing] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [formData, setFormData] = useState({
     username: user?.username || '',
     email: user?.email || '',
@@ -16,14 +17,81 @@ const Profile = () => {
     bio: user?.bio || '',
   });
   const [profilePictureUrl, setProfilePictureUrl] = useState(user?.profile_picture || null);
+  const [preview, setPreview] = useState(user?.profile_picture || null);
   const [error, setError] = useState('');
+  const fileInputRef = useRef(null);
+
+  // Credenciais do Cloudinary
+  const CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
+  const UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
+
+  const uploadToCloudinary = async (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', UPLOAD_PRESET);
+    formData.append('folder', 'profile_pictures');
+
+    const response = await fetch(
+      `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`,
+      {
+        method: 'POST',
+        body: formData,
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error('Falha no upload para Cloudinary');
+    }
+
+    return await response.json();
+  };
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleImageUploaded = (url) => {
-    setProfilePictureUrl(url);
+  const handleImageChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Validações
+    if (!file.type.startsWith('image/')) {
+      setError('Por favor, selecione uma imagem válida');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setError('A imagem deve ter no máximo 5MB');
+      return;
+    }
+
+    setError('');
+    setUploading(true);
+
+    try {
+      // Preview local imediato
+      const reader = new FileReader();
+      reader.onloadend = () => setPreview(reader.result);
+      reader.readAsDataURL(file);
+
+      // Upload para Cloudinary
+      const data = await uploadToCloudinary(file);
+      const cloudinaryUrl = data.secure_url;
+
+      console.log('✅ Upload concluído:', cloudinaryUrl);
+
+      // Salvar URL do Cloudinary
+      setProfilePictureUrl(cloudinaryUrl);
+      setPreview(cloudinaryUrl);
+
+    } catch (err) {
+      console.error('❌ Erro no upload:', err);
+      setError('Erro ao fazer upload da imagem');
+      setPreview(user?.profile_picture || null);
+      setProfilePictureUrl(user?.profile_picture || null);
+    } finally {
+      setUploading(false);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -97,7 +165,11 @@ const Profile = () => {
       last_name: user?.last_name || '',
       bio: user?.bio || '',
     });
+    setPreview(user?.profile_picture || null);
     setProfilePictureUrl(user?.profile_picture || null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   return (
@@ -105,33 +177,62 @@ const Profile = () => {
       <div className="max-w-2xl mx-auto">
         <div className="card">
           <div className="flex flex-col items-center mb-6">
-            {!editing && (
-              <>
-                {profilePictureUrl ? (
-                  <img
-                    src={profilePictureUrl}
-                    alt="Profile"
-                    className="w-32 h-32 rounded-full object-cover"
-                  />
-                ) : (
-                  <div className="w-32 h-32 bg-blue-500 rounded-full flex items-center justify-center text-white text-4xl font-bold">
-                    {user?.username[0].toUpperCase()}
-                  </div>
-                )}
-
-                <div className="text-center mt-4">
-                  <h2 className="text-2xl font-bold text-gray-900">{user?.username}</h2>
-                  <p className="text-gray-600">{user?.email}</p>
-                  {(user?.first_name || user?.last_name) && (
-                    <p className="text-gray-700 mt-2">
-                      {user.first_name} {user.last_name}
-                    </p>
-                  )}
-                  {user?.bio && (
-                    <p className="text-gray-600 mt-2 italic">{user.bio}</p>
-                  )}
+            <div className="relative">
+              {preview ? (
+                <img
+                  src={preview}
+                  alt="Profile"
+                  className="w-32 h-32 rounded-full object-cover"
+                />
+              ) : (
+                <div className="w-32 h-32 bg-blue-500 rounded-full flex items-center justify-center text-white text-4xl font-bold">
+                  {user?.username[0].toUpperCase()}
                 </div>
-              </>
+              )}
+
+              {/* Botão de câmera aparece SEMPRE em modo de edição */}
+              {editing && (
+                <>
+                  <label className="absolute bottom-0 right-0 bg-blue-600 text-white rounded-full p-2 cursor-pointer hover:bg-blue-700 transition-colors">
+                    {uploading ? (
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                    ) : (
+                      <Camera className="w-5 h-5" />
+                    )}
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageChange}
+                      className="hidden"
+                      disabled={uploading}
+                    />
+                  </label>
+
+                  {uploading && (
+                    <div className="absolute inset-0 bg-black bg-opacity-50 rounded-full flex items-center justify-center">
+                      <div className="text-center">
+                        <Loader2 className="animate-spin text-white mx-auto" size={24} />
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+
+            {!editing && (
+              <div className="text-center mt-4">
+                <h2 className="text-2xl font-bold text-gray-900">{user?.username}</h2>
+                <p className="text-gray-600">{user?.email}</p>
+                {(user?.first_name || user?.last_name) && (
+                  <p className="text-gray-700 mt-2">
+                    {user.first_name} {user.last_name}
+                  </p>
+                )}
+                {user?.bio && (
+                  <p className="text-gray-600 mt-2 italic">{user.bio}</p>
+                )}
+              </div>
             )}
           </div>
 
@@ -143,17 +244,6 @@ const Profile = () => {
 
           {editing ? (
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Foto de Perfil
-                </label>
-                <ImageUpload
-                  onImageUploaded={handleImageUploaded}
-                  currentImage={profilePictureUrl}
-                  folder="profile_pictures"
-                />
-              </div>
-
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Usuário</label>
                 <input
@@ -215,7 +305,7 @@ const Profile = () => {
               <div className="flex space-x-3">
                 <button
                   type="submit"
-                  disabled={loading}
+                  disabled={loading || uploading}
                   className="flex-1 btn-primary disabled:opacity-50"
                 >
                   {loading ? 'Salvando...' : 'Salvar'}
@@ -223,7 +313,7 @@ const Profile = () => {
                 <button
                   type="button"
                   onClick={handleCancel}
-                  disabled={loading}
+                  disabled={loading || uploading}
                   className="flex-1 btn-secondary disabled:opacity-50"
                 >
                   Cancelar

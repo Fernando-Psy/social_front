@@ -16,12 +16,6 @@ api.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
-
-    // Se for FormData, remover Content-Type para o browser definir automaticamente
-    if (config.data instanceof FormData) {
-      delete config.headers['Content-Type'];
-    }
-
     return config;
   },
   (error) => Promise.reject(error)
@@ -74,21 +68,9 @@ export const authAPI = {
     });
   },
 
+  // Envia JSON puro
   updateProfile: (data) => {
-    if (data instanceof FormData) {
-      return api.patch('/auth/profile/', data, {
-        headers: { 'Content-Type': 'application/json' }
-      });
-    }
-
-    const formData = new FormData();
-    Object.keys(data).forEach(key => {
-      if (data[key] !== null && data[key] !== undefined) {
-        formData.append(key, data[key]);
-      }
-    });
-
-    return api.patch('/auth/profile/', formData, {
+    return api.patch('/auth/profile/', data, {
       headers: { 'Content-Type': 'application/json' }
     });
   },
